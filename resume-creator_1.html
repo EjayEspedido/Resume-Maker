@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resume & CV Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2440;
+    --paper:#F6F4EE;
+    --card:#FFFFFF;
+    --accent:#2F4FB0;
+    --accent-dark:#1F3684;
+    --muted:#6B7280;
+    --border:#E3E0D8;
+    --good:#1F7A5C;
+    --warn:#B3591F;
+    --danger:#B0362E;
+    --page-w: 8.5in;
+    --page-h-px: 1056;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:600;margin:0;}
+
+  /* ---------- Layout ---------- */
+  .app{display:flex;flex-direction:column;min-height:100vh;}
+  header.topbar{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    padding:14px 22px;background:var(--ink);color:#fff;position:sticky;top:0;z-index:20;
+  }
+  header.topbar .brand{display:flex;align-items:center;gap:10px;}
+  header.topbar .brand .mark{
+    width:30px;height:30px;border-radius:6px;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;font-size:15px;
+  }
+  header.topbar h1{font-size:17px;color:#fff;letter-spacing:.2px;}
+  header.topbar .sub{font-size:11px;color:#B9C0DA;margin-top:1px;}
+  .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+  .mode-toggle{display:flex;background:rgba(255,255,255,.08);border-radius:8px;padding:3px;}
+  .mode-toggle button{
+    border:none;background:transparent;color:#C9CFE6;font-family:inherit;font-size:12.5px;font-weight:500;
+    padding:7px 14px;border-radius:6px;cursor:pointer;transition:.15s;
+  }
+  .mode-toggle button.active{background:var(--accent);color:#fff;}
+
+  select, .btn{
+    font-family:'Inter',sans-serif;font-size:12.5px;border-radius:7px;cursor:pointer;
+  }
+  .btn{
+    border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;
+    padding:8px 13px;font-weight:500;display:flex;align-items:center;gap:6px;transition:.15s;
+  }
+  .btn:hover{background:rgba(255,255,255,.15);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);}
+  .btn.primary:hover{background:var(--accent-dark);}
+  .btn.small{padding:5px 9px;font-size:11.5px;}
+
+  .layout{display:flex;flex:1;min-height:0;}
+  .form-panel{
+    width:440px;min-width:340px;max-width:46vw;overflow-y:auto;
+    padding:20px;background:var(--paper);border-right:1px solid var(--border);
+  }
+  .preview-panel{
+    flex:1;overflow-y:auto;padding:36px 24px;display:flex;flex-direction:column;align-items:center;background:#EDEAE1;
+  }
+
+  /* ---------- Form styling ---------- */
+  .field-group{margin-bottom:14px;}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field-group{flex:1;}
+  label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+  input[type=text], input[type=email], input[type=tel], input[type=url], textarea, select.plain{
+    width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:7px;
+    font-family:'Inter',sans-serif;font-size:13.5px;color:var(--ink);background:#fff;
+  }
+  input:focus, textarea:focus, select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  textarea{resize:vertical;min-height:56px;line-height:1.45;}
+
+  .panel-block{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:14px 16px 16px;margin-bottom:14px;
+  }
+  .panel-block > .block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .panel-block > .block-head h3{font-size:14px;}
+
+  .section-block{margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:var(--card);overflow:hidden;}
+  .section-head{
+    display:flex;align-items:center;gap:8px;padding:11px 12px;background:#FBFAF7;border-bottom:1px solid var(--border);
+  }
+  .section-head input[type=text]{
+    border:none;background:transparent;font-family:'Fraunces',serif;font-weight:600;font-size:14.5px;padding:2px 4px;flex:1;min-width:0;
+  }
+  .section-head input[type=text]:focus{outline:none;background:#fff;border-radius:5px;}
+  .section-head .tag{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#EFEDE5;padding:3px 6px;border-radius:5px;}
+  .icon-btn{
+    border:none;background:transparent;color:var(--muted);cursor:pointer;width:26px;height:26px;
+    border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;
+  }
+  .icon-btn:hover{background:#EFEDE5;color:var(--ink);}
+  .icon-btn.danger:hover{background:#FBEAE8;color:var(--danger);}
+  .section-body{padding:12px;}
+  .section-body.hidden-body{display:none;}
+
+  .entry{border:1px dashed var(--border);border-radius:8px;padding:10px 10px 12px;margin-bottom:10px;background:#FCFBF8;}
+  .entry-top{display:flex;justify-content:flex-end;gap:2px;margin-bottom:4px;}
+
+  .add-btn{
+    width:100%;padding:9px;border:1.5px dashed #C7C3B6;background:transparent;border-radius:8px;
+    color:var(--muted);font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;cursor:pointer;
+  }
+  .add-btn:hover{border-color:var(--accent);color:var(--accent);background:#F1F4FC;}
+
+  .skills-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .skill-chip{
+    display:flex;align-items:center;gap:6px;background:#EEF2FB;color:var(--accent-dark);
+    padding:5px 6px 5px 10px;border-radius:16px;font-size:12.5px;font-weight:500;
+  }
+  .skill-chip button{border:none;background:transparent;color:var(--accent-dark);cursor:pointer;font-size:13px;padding:2px 4px;line-height:1;opacity:.65;}
+  .skill-chip button:hover{opacity:1;}
+  .skill-input-row{display:flex;gap:6px;}
+  .skill-input-row input{flex:1;}
+
+  .add-section-row{display:flex;gap:8px;margin-top:6px;}
+  .add-section-row select{flex:1;}
+  .add-section-row .btn.primary{padding:9px 14px;color:#fff;border:none;}
+
+  .visibility-off .section-head{opacity:.55;}
+  .visibility-off .section-body{opacity:.55;}
+
+  .style-row{display:flex;gap:8px;}
+  .style-row button{
+    flex:1;padding:8px;border:1px solid var(--border);background:#fff;border-radius:7px;
+    font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;
+  }
+  .style-row button.active{border-color:var(--accent);color:var(--accent);background:#F1F4FC;}
+
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
+  .slider-row .pt-readout{
+    font-size:12.5px;font-weight:600;color:var(--ink);background:#F1F4FC;color:var(--accent-dark);
+    padding:5px 9px;border-radius:6px;min-width:52px;text-align:center;flex-shrink:0;
+  }
+
+  .fit-banner{
+    width:100%;max-width:var(--page-w);margin-bottom:14px;padding:10px 14px;border-radius:8px;
+    font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:8px;
+  }
+  .fit-banner.ok{background:#E8F5EF;color:var(--good);}
+  .fit-banner.warn{background:#FBF0E6;color:var(--warn);}
+  .fit-banner .count{margin-left:auto;font-weight:600;}
+
+  /* ---------- Resume sheet (ATS-safe) ---------- */
+  .sheet-wrap{position:relative;}
+  #resumeSheet{
+    width:var(--page-w);min-height:11in;background:#fff;box-shadow:0 4px 22px rgba(0,0,0,.14);
+    color:#111;
+  }
+  #resumeSheet.margin-normal{padding:0.65in 0.7in;}
+  #resumeSheet.margin-narrow{padding:0.4in 0.45in;}
+  #resumeSheet.margin-narrowest{padding:0.22in 0.28in;}
+  #resumeSheet.font-sans{font-family:Arial,Helvetica,sans-serif;}
+  #resumeSheet.font-serif{font-family:Georgia,'Times New Roman',serif;}
+
+  #resumeSheet.tpl-harvard .r-name{text-transform:uppercase;font-size:1.85em;letter-spacing:.6px;}
+  #resumeSheet.tpl-harvard .r-contact span + span::before{content:", ";color:#333;}
+  #resumeSheet.tpl-harvard .r-heading{letter-spacing:0;}
+
+  .r-name{font-size:2.15em;font-weight:700;letter-spacing:.2px;margin:0 0 2px;text-align:center;}
+  .r-title{font-size:1.12em;color:#3A3A3A;margin:0 0 6px;font-weight:400;text-align:center;}
+  .r-contact{font-size:.92em;color:#333;margin-bottom:14px;text-align:center;}
+  .r-contact span{white-space:nowrap;}
+  .r-contact span + span::before{content:"  |  ";color:#999;}
+
+  .r-section{margin-bottom:11px;}
+  .r-heading{
+    font-size:1em;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
+    border-bottom:1px solid #222;padding-bottom:2px;margin-bottom:6px;
+  }
+  .r-entry{margin-bottom:8px;}
+  .r-entry:last-child{margin-bottom:0;}
+  .r-entry-row{display:flex;justify-content:space-between;gap:10px;font-weight:700;}
+  .r-entry-row .r-dates{font-weight:400;font-style:italic;color:#333;white-space:nowrap;font-size:.95em;}
+  .r-entry-sub{display:flex;justify-content:space-between;gap:10px;font-style:italic;color:#333;font-size:.97em;margin-bottom:3px;}
+  .r-bullets{margin:0;padding-left:1.05em;}
+  .r-bullets li{margin-bottom:0;}
+  .r-text{white-space:pre-wrap;color:#1a1a1a;}
+  .r-skills{display:block;}
+  .r-skills span{display:inline;}
+  .r-skills span::after{content:", ";color:#333;}
+  .r-skills span:last-child::after{content:"";}
+
+  .page-break-line{
+    position:absolute;left:0;right:0;height:0;border-top:2px dashed #C99;pointer-events:none;
+  }
+  .page-break-label{
+    position:absolute;right:-4px;transform:translateY(-100%);background:#C99;color:#fff;
+    font-size:9.5px;padding:2px 6px;border-radius:4px 4px 0 0;font-family:'Inter',sans-serif;font-weight:600;
+  }
+
+  .save-indicator{font-size:11px;color:#8B93B8;min-width:70px;text-align:right;}
+
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#D6D2C6;border-radius:6px;}
+
+  @media (max-width: 880px){
+    .layout{flex-direction:column;}
+    .form-panel{width:100%;max-width:100%;border-right:none;border-bottom:1px solid var(--border);max-height:52vh;}
+    .preview-panel{padding:20px 10px;}
+    #resumeSheet{width:100%;max-width:var(--page-w);padding:0.5in 0.45in;}
+  }
+
+  @media print{
+    body{background:#fff;}
+    header.topbar, .form-panel, .fit-banner, .page-break-line, .page-break-label{display:none !important;}
+    .preview-panel{padding:0;background:#fff;display:block;}
+    .sheet-wrap{box-shadow:none;}
+    #resumeSheet{box-shadow:none;padding:0;width:auto;min-height:0;}
+    .r-entry, .r-section{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">R</div>
+      <div>
+        <h1>Resume & CV Builder</h1>
+        <div class="sub">ATS-friendly &middot; single or multi-page</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="mode-toggle" role="tablist" aria-label="Document type">
+        <button id="modeResumeBtn" class="active" data-mode="resume">Resume (1 page)</button>
+        <button id="modeCvBtn" data-mode="cv">CV (multi-page)</button>
+      </div>
+      <span class="save-indicator" id="saveIndicator"></span>
+      <button class="btn" id="exportBtn" title="Download your data as a JSON file">Export</button>
+      <button class="btn" id="importBtn" title="Load data from a JSON file">Import</button>
+      <input type="file" id="importFileInput" accept="application/json,.json,.txt" style="display:none;">
+      <button class="btn" id="shrinkFitBtn" title="Automatically reduce font size until content fits one page">Shrink to fit</button>
+      <button class="btn" id="resetBtn" title="Clear all data">Reset</button>
+      <button class="btn primary" id="printBtn">Print / Save as PDF</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="form-panel" id="formPanel"></div>
+
+    <div class="preview-panel">
+      <div class="fit-banner" id="fitBanner"></div>
+      <div class="sheet-wrap" id="sheetWrap">
+        <div id="resumeSheet" class="font-sans fs-normal"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+var PAGE_H_PX = 1056;
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+function defaultState(){
+  return {
+    personal:{
+      name:'Jordan Alvarez',
+      title:'Product Marketing Manager',
+      email:'jordan.alvarez@email.com',
+      phone:'(555) 012-3456',
+      location:'Austin, TX',
+      linkedin:'linkedin.com/in/jordanalvarez',
+      website:''
+    },
+    mode:'resume',
+    template:'jakes',
+    fontFamily:'sans',
+    fontSizePt:10.6,
+    margin:'narrowest',
+    sections:[
+      { id:uid(), kind:'text', title:'Summary', visible:true,
+        content:'Results-driven product marketer with 6+ years leading go-to-market strategy for B2B SaaS products. Skilled at translating complex features into clear positioning that drives pipeline and adoption.' },
+      { id:uid(), kind:'entries', title:'Experience', visible:true, items:[
+        { id:uid(), heading:'Senior Product Marketing Manager', org:'Brightline Software', location:'Austin, TX', dates:'Jan 2022 – Present',
+          bullets:['Led go-to-market strategy for 4 product launches, driving $3.2M in new pipeline within two quarters.','Built a messaging framework adopted across sales, CS, and support, cutting onboarding time by 30%.','Managed a $250K campaign budget across paid, lifecycle, and partner channels.'] },
+        { id:uid(), heading:'Product Marketing Associate', org:'Northwind Analytics', location:'Remote', dates:'Jun 2019 – Dec 2021',
+          bullets:['Owned the competitive intelligence program, publishing monthly briefs used by 40+ sales reps.','Partnered with design on a website refresh that improved demo-request conversion by 18%.'] }
+      ]},
+      { id:uid(), kind:'entries', title:'Education', visible:true, items:[
+        { id:uid(), heading:'B.A. in Marketing', org:'University of Texas at Austin', location:'Austin, TX', dates:'2015 – 2019', bullets:[] }
+      ]},
+      { id:uid(), kind:'skills', title:'Skills', visible:true,
+        skills:['Go-to-Market Strategy','Positioning & Messaging','Competitive Analysis','SQL','Figma','A/B Testing'] },
+      { id:uid(), kind:'entries', title:'Certifications', visible:false, items:[] }
+    ]
+  };
+}
+
+var state = defaultState();
+
+function getSection(id){ return state.sections.find(function(s){ return s.id===id; }); }
+function getItem(sec, id){ return sec.items.find(function(i){ return i.id===id; }); }
+
+/* ---------------- Persistence ---------------- */
+var saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  setIndicator('Saving…');
+  saveTimer = setTimeout(function(){
+    try{
+      localStorage.setItem('resume-builder-data', JSON.stringify(state));
+      setIndicator('Saved');
+      setTimeout(function(){ setIndicator(''); }, 1500);
+    }catch(e){
+      setIndicator('');
+    }
+  }, 500);
+}
+function setIndicator(txt){
+  var el = document.getElementById('saveIndicator');
+  if (el) el.textContent = txt;
+}
+function loadSaved(){
+  try{
+    var raw = localStorage.getItem('resume-builder-data');
+    if (raw){
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.personal && parsed.sections){
+        if (typeof parsed.fontSizePt !== 'number'){
+          var map = { normal:10.6, compact:9.8, tight:9.2 };
+          parsed.fontSizePt = map[parsed.fontSize] || 10.6;
+        }
+        if (!parsed.margin) parsed.margin = 'narrowest';
+        if (parsed.template !== 'harvard') parsed.template = 'jakes';
+        state = parsed;
+      }
+    }
+  }catch(e){}
+  renderAll();
+}
+
+/* ---------------- Escaping ---------------- */
+function esc(str){
+  return (str||'').replace(/[&<>"']/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+  });
+}
+
+/* ---------------- Form rendering ---------------- */
+function renderForm(){
+  var p = state.personal;
+  var html = '';
+
+  html += '<div class="panel-block">';
+  html += '<div class="block-head"><h3>Contact info</h3></div>';
+  html += '<div class="field-group"><label>Full name</label><input type="text" data-personal="name" value="'+esc(p.name)+'"></div>';
+  html += '<div class="field-group"><label>Headline / target title</label><input type="text" data-personal="title" value="'+esc(p.title)+'"></div>';
+  html += '<div class="field-row"><div class="field-group"><label>Email</label><input type="email" data-personal="email" value="'+esc(p.email)+'"></div>';
+  html += '<div class="field-group"><label>Phone</label><input type="tel" data-personal="phone" value="'+esc(p.phone)+'"></div></div>';
+  html += '<div class="field-row"><div class="field-group"><label>Location</label><input type="text" data-personal="location" value="'+esc(p.location)+'"></div>';
+  html += '<div class="field-group"><label>LinkedIn</label><input type="text" data-personal="linkedin" value="'+esc(p.linkedin)+'"></div></div>';
+  html += '<div class="field-group"><label>Website / portfolio</label><input type="text" data-personal="website" value="'+esc(p.website)+'"></div>';
+  html += '</div>';
+
+  html += '<div class="panel-block">';
+  html += '<div class="block-head"><h3>Appearance</h3></div>';
+  html += '<div class="field-group"><label>Template</label><div class="style-row">';
+  html += '<button data-action="set-template" data-value="jakes" class="'+(state.template==='jakes'?'active':'')+'">Jake\u2019s Resume</button>';
+  html += '<button data-action="set-template" data-value="harvard" class="'+(state.template==='harvard'?'active':'')+'">Harvard</button>';
+  html += '</div></div>';
+  html += '<div class="field-group"><label>Font</label><div class="style-row">';
+  html += '<button data-action="set-font" data-value="sans" class="'+(state.fontFamily==='sans'?'active':'')+'">Sans (Arial)</button>';
+  html += '<button data-action="set-font" data-value="serif" class="'+(state.fontFamily==='serif'?'active':'')+'">Serif (Georgia)</button>';
+  html += '</div></div>';
+  html += '<div class="field-group"><label>Font size <span id="ptReadoutLabel">('+state.fontSizePt.toFixed(1)+'pt)</span></label>';
+  html += '<div class="slider-row">';
+  html += '<input type="range" id="fontSizeSlider" min="8" max="13" step="0.1" value="'+state.fontSizePt+'">';
+  html += '<span class="pt-readout" id="ptReadout">'+state.fontSizePt.toFixed(1)+'pt</span>';
+  html += '</div></div>';
+  html += '<div class="field-group"><label>Margins</label><div class="style-row">';
+  [['normal','Normal'],['narrow','Narrow'],['narrowest','Narrowest']].forEach(function(pair){
+    html += '<button data-action="set-margin" data-value="'+pair[0]+'" class="'+(state.margin===pair[0]?'active':'')+'">'+pair[1]+'</button>';
+  });
+  html += '</div></div>';
+  html += '</div>';
+
+  state.sections.forEach(function(sec, idx){
+    html += renderSectionForm(sec, idx, state.sections.length);
+  });
+
+  html += '<div class="panel-block">';
+  html += '<div class="block-head"><h3>Add a section</h3></div>';
+  html += '<div class="add-section-row">';
+  html += '<select class="plain" id="newSectionKind">';
+  html += '<option value="entries">Entry list (experience, education, projects, etc.)</option>';
+  html += '<option value="text">Text block (summary, objective)</option>';
+  html += '<option value="skills">Skills list</option>';
+  html += '</select>';
+  html += '<button class="btn primary" id="addSectionBtn">Add</button>';
+  html += '</div></div>';
+
+  document.getElementById('formPanel').innerHTML = html;
+}
+
+function renderSectionForm(sec, idx, total){
+  var kindLabel = sec.kind==='text' ? 'Text' : (sec.kind==='skills' ? 'Skills' : 'Entries');
+  var html = '<div class="section-block '+(sec.visible?'':'visibility-off')+'">';
+  html += '<div class="section-head">';
+  html += '<button class="icon-btn" data-action="toggle-section" data-section="'+sec.id+'" title="'+(sec.visible?'Hide section':'Show section')+'">'+(sec.visible?'\u25C9':'\u25CB')+'</button>';
+  html += '<input type="text" data-field="title" data-section="'+sec.id+'" value="'+esc(sec.title)+'" aria-label="Section title">';
+  html += '<span class="tag">'+kindLabel+'</span>';
+  html += '<button class="icon-btn" data-action="move-up" data-section="'+sec.id+'" '+(idx===0?'disabled style="opacity:.3"':'')+' title="Move up">\u2191</button>';
+  html += '<button class="icon-btn" data-action="move-down" data-section="'+sec.id+'" '+(idx===total-1?'disabled style="opacity:.3"':'')+' title="Move down">\u2193</button>';
+  html += '<button class="icon-btn danger" data-action="remove-section" data-section="'+sec.id+'" title="Delete section">\u2715</button>';
+  html += '</div>';
+  html += '<div class="section-body">';
+
+  if (sec.kind==='text'){
+    html += '<textarea data-field="content" data-section="'+sec.id+'" rows="4" placeholder="Write a short summary...">'+esc(sec.content)+'</textarea>';
+  } else if (sec.kind==='skills'){
+    html += '<div class="skills-wrap">';
+    (sec.skills||[]).forEach(function(sk, i){
+      html += '<span class="skill-chip">'+esc(sk)+'<button data-action="remove-skill" data-section="'+sec.id+'" data-index="'+i+'" title="Remove">\u2715</button></span>';
+    });
+    html += '</div>';
+    html += '<div class="skill-input-row">';
+    html += '<input type="text" placeholder="Add a skill and press Enter" data-skill-input="'+sec.id+'">';
+    html += '<button class="btn small" style="border-color:var(--border);color:var(--ink);background:#F5F3EC;" data-action="add-skill" data-section="'+sec.id+'">Add</button>';
+    html += '</div>';
+  } else {
+    (sec.items||[]).forEach(function(item, i){
+      html += renderEntryForm(sec, item, i, (sec.items||[]).length);
+    });
+    html += '<button class="add-btn" data-action="add-item" data-section="'+sec.id+'">+ Add entry</button>';
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+function renderEntryForm(sec, item, idx, total){
+  var html = '<div class="entry">';
+  html += '<div class="entry-top">';
+  html += '<button class="icon-btn" data-action="item-up" data-section="'+sec.id+'" data-item="'+item.id+'" '+(idx===0?'disabled style="opacity:.3"':'')+' title="Move up">\u2191</button>';
+  html += '<button class="icon-btn" data-action="item-down" data-section="'+sec.id+'" data-item="'+item.id+'" '+(idx===total-1?'disabled style="opacity:.3"':'')+' title="Move down">\u2193</button>';
+  html += '<button class="icon-btn danger" data-action="remove-item" data-section="'+sec.id+'" data-item="'+item.id+'" title="Delete entry">\u2715</button>';
+  html += '</div>';
+  html += '<div class="field-group"><label>Title / role / degree</label><input type="text" data-field="heading" data-section="'+sec.id+'" data-item="'+item.id+'" value="'+esc(item.heading)+'"></div>';
+  html += '<div class="field-row"><div class="field-group"><label>Organization</label><input type="text" data-field="org" data-section="'+sec.id+'" data-item="'+item.id+'" value="'+esc(item.org)+'"></div>';
+  html += '<div class="field-group"><label>Location</label><input type="text" data-field="location" data-section="'+sec.id+'" data-item="'+item.id+'" value="'+esc(item.location)+'"></div></div>';
+  html += '<div class="field-group"><label>Dates</label><input type="text" data-field="dates" data-section="'+sec.id+'" data-item="'+item.id+'" value="'+esc(item.dates)+'" placeholder="Jan 2022 – Present"></div>';
+  html += '<div class="field-group"><label>Bullet points (one per line)</label><textarea data-field="bullets" data-section="'+sec.id+'" data-item="'+item.id+'" rows="3">'+esc((item.bullets||[]).join('\n'))+'</textarea></div>';
+  html += '</div>';
+  return html;
+}
+
+/* ---------------- Preview rendering ---------------- */
+function renderPreview(){
+  var sheet = document.getElementById('resumeSheet');
+  sheet.className = 'font-'+state.fontFamily+' margin-'+state.margin+' tpl-'+state.template;
+  var fs = state.fontSizePt;
+  var lh = Math.max(1.15, Math.min(1.5, 1.24 + (fs-9.2)*0.1286));
+  sheet.style.fontSize = fs+'pt';
+  sheet.style.lineHeight = lh.toFixed(2);
+  updatePrintMargin();
+
+  var p = state.personal;
+  var html = '';
+  html += '<div class="r-name">'+esc(p.name||'Your Name')+'</div>';
+  if (p.title) html += '<div class="r-title">'+esc(p.title)+'</div>';
+
+  var contactBits = [];
+  if (p.location) contactBits.push(esc(p.location));
+  if (p.phone) contactBits.push(esc(p.phone));
+  if (p.email) contactBits.push(esc(p.email));
+  if (p.linkedin) contactBits.push(esc(p.linkedin));
+  if (p.website) contactBits.push(esc(p.website));
+  if (contactBits.length){
+    html += '<div class="r-contact">'+contactBits.map(function(b){ return '<span>'+b+'</span>'; }).join('')+'</div>';
+  }
+
+  state.sections.forEach(function(sec){
+    if (!sec.visible) return;
+    if (sec.kind==='text'){
+      if (!sec.content || !sec.content.trim()) return;
+      html += '<div class="r-section"><div class="r-heading">'+esc(sec.title)+'</div><div class="r-text">'+esc(sec.content)+'</div></div>';
+    } else if (sec.kind==='skills'){
+      if (!sec.skills || !sec.skills.length) return;
+      html += '<div class="r-section"><div class="r-heading">'+esc(sec.title)+'</div><div class="r-skills">';
+      html += sec.skills.map(function(s){ return '<span>'+esc(s)+'</span>'; }).join('');
+      html += '</div></div>';
+    } else {
+      if (!sec.items || !sec.items.length) return;
+      html += '<div class="r-section"><div class="r-heading">'+esc(sec.title)+'</div>';
+      sec.items.forEach(function(item){
+        html += '<div class="r-entry">';
+        if (state.template === 'harvard'){
+          html += '<div class="r-entry-row"><span>'+esc(item.org)+'</span><span class="r-dates">'+esc(item.location)+'</span></div>';
+          if (item.heading || item.dates){
+            html += '<div class="r-entry-sub"><span>'+esc(item.heading)+'</span><span>'+esc(item.dates)+'</span></div>';
+          }
+        } else {
+          html += '<div class="r-entry-row"><span>'+esc(item.heading)+'</span><span class="r-dates">'+esc(item.dates)+'</span></div>';
+          if (item.org || item.location){
+            html += '<div class="r-entry-sub"><span>'+esc(item.org)+'</span><span>'+esc(item.location)+'</span></div>';
+          }
+        }
+        var bullets = (item.bullets||[]).filter(function(b){ return b && b.trim(); });
+        if (bullets.length){
+          html += '<ul class="r-bullets">'+bullets.map(function(b){ return '<li>'+esc(b)+'</li>'; }).join('')+'</ul>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+  });
+
+  sheet.innerHTML = html;
+  refreshPageInfo();
+}
+
+function updatePrintMargin(){
+  var inches = { normal:'0.65in', narrow:'0.4in', narrowest:'0.22in' }[state.margin] || '0.4in';
+  var styleEl = document.getElementById('printPageStyle');
+  if (!styleEl){
+    styleEl = document.createElement('style');
+    styleEl.id = 'printPageStyle';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = '@media print { @page { size: letter; margin: '+inches+'; } }';
+}
+
+function computePages(){
+  var sheet = document.getElementById('resumeSheet');
+  return Math.max(1, Math.ceil(sheet.scrollHeight / PAGE_H_PX));
+}
+
+function applyFontSize(pt){
+  var sheet = document.getElementById('resumeSheet');
+  var lh = Math.max(1.1, Math.min(1.5, 1.24 + (pt-9.2)*0.1286));
+  sheet.style.fontSize = pt+'pt';
+  sheet.style.lineHeight = lh.toFixed(2);
+}
+
+var FONT_FLOOR = 8;
+
+function shrinkToFit(){
+  if (state.mode !== 'resume'){ return; }
+  var pages = computePages();
+  if (pages <= 1){
+    flashSaveMsg('Already fits on one page.');
+    return;
+  }
+  var pt = state.fontSizePt;
+  while (pt > FONT_FLOOR){
+    pt = Math.round((pt - 0.1) * 10) / 10;
+    applyFontSize(pt);
+    pages = computePages();
+    if (pages <= 1) break;
+  }
+  state.fontSizePt = pt;
+  renderForm();
+  renderPreview();
+  scheduleSave();
+  if (pages > 1){
+    alert('Shrunk font to '+pt.toFixed(1)+'pt, the smallest readable size, but content still spans '+pages+' pages.\n\nTry hiding a lower-priority section, trimming bullet points, or switching to CV mode.');
+  } else {
+    flashSaveMsg('Fitted to one page at '+pt.toFixed(1)+'pt.');
+  }
+}
+
+function flashSaveMsg(msg){
+  setIndicator(msg);
+  setTimeout(function(){ setIndicator(''); }, 2200);
+}
+
+function refreshPageInfo(){
+  var sheet = document.getElementById('resumeSheet');
+  var wrap = document.getElementById('sheetWrap');
+  var h = sheet.scrollHeight;
+  var pages = Math.max(1, Math.ceil(h / PAGE_H_PX));
+
+  var oldLines = wrap.querySelectorAll('.page-break-line, .page-break-label');
+  oldLines.forEach(function(el){ el.remove(); });
+
+  if (pages > 1){
+    for (var n=1; n<pages; n++){
+      var line = document.createElement('div');
+      line.className = 'page-break-line';
+      line.style.top = (n*PAGE_H_PX)+'px';
+      var label = document.createElement('div');
+      label.className = 'page-break-label';
+      label.style.top = (n*PAGE_H_PX)+'px';
+      label.textContent = 'Page '+n+' / '+(n+1)+' break';
+      wrap.appendChild(line);
+      wrap.appendChild(label);
+    }
+  }
+
+  var banner = document.getElementById('fitBanner');
+  if (state.mode === 'resume'){
+    if (pages <= 1){
+      banner.className = 'fit-banner ok';
+      banner.innerHTML = '<span>&#10003; Fits on one page.</span><span class="count">1 page</span>';
+    } else {
+      banner.className = 'fit-banner warn';
+      banner.innerHTML = '<span>Content runs to '+pages+' pages.</span><button class="btn small" id="bannerShrinkBtn" style="border-color:var(--warn);color:var(--warn);background:#fff;">Shrink to fit</button><span class="count">'+pages+' pages</span>';
+      var bsb = document.getElementById('bannerShrinkBtn');
+      if (bsb) bsb.addEventListener('click', shrinkToFit);
+    }
+  } else {
+    banner.className = 'fit-banner ok';
+    banner.innerHTML = '<span>CV mode — multiple pages allowed.</span><span class="count">'+pages+' page'+(pages>1?'s':'')+'</span>';
+  }
+}
+
+function renderAll(){
+  document.getElementById('modeResumeBtn').classList.toggle('active', state.mode==='resume');
+  document.getElementById('modeCvBtn').classList.toggle('active', state.mode==='cv');
+  document.getElementById('shrinkFitBtn').style.display = state.mode==='resume' ? '' : 'none';
+  renderForm();
+  renderPreview();
+}
+
+/* ---------------- Event delegation ---------------- */
+var formPanel = document.getElementById('formPanel');
+
+formPanel.addEventListener('input', function(e){
+  var t = e.target;
+  if (t.id === 'fontSizeSlider'){
+    state.fontSizePt = parseFloat(t.value);
+    var readout = document.getElementById('ptReadout');
+    var readoutLabel = document.getElementById('ptReadoutLabel');
+    if (readout) readout.textContent = state.fontSizePt.toFixed(1)+'pt';
+    if (readoutLabel) readoutLabel.textContent = '('+state.fontSizePt.toFixed(1)+'pt)';
+    renderPreview(); scheduleSave();
+    return;
+  }
+  if (t.dataset.personal){
+    state.personal[t.dataset.personal] = t.value;
+    renderPreview(); scheduleSave();
+    return;
+  }
+  if (t.dataset.field && t.dataset.section){
+    var sec = getSection(t.dataset.section);
+    if (!sec) return;
+    if (t.dataset.item){
+      var item = getItem(sec, t.dataset.item);
+      if (!item) return;
+      if (t.dataset.field === 'bullets'){
+        item.bullets = t.value.split('\n');
+      } else {
+        item[t.dataset.field] = t.value;
+      }
+    } else {
+      if (t.dataset.field === 'title') sec.title = t.value;
+      else if (t.dataset.field === 'content') sec.content = t.value;
+    }
+    renderPreview(); scheduleSave();
+  }
+});
+
+formPanel.addEventListener('keydown', function(e){
+  if (e.key === 'Enter' && e.target.dataset.skillInput !== undefined){
+    e.preventDefault();
+    addSkill(e.target.dataset.skillInput, e.target);
+  }
+});
+
+formPanel.addEventListener('click', function(e){
+  var btn = e.target.closest('button');
+  if (!btn) return;
+  var action = btn.dataset.action;
+  if (!action){
+    if (btn.id === 'addSectionBtn') return addSection();
+    return;
+  }
+
+  if (action === 'set-font'){ state.fontFamily = btn.dataset.value; renderForm(); renderPreview(); scheduleSave(); return; }
+  if (action === 'set-margin'){ state.margin = btn.dataset.value; renderForm(); renderPreview(); scheduleSave(); return; }
+  if (action === 'set-template'){ state.template = btn.dataset.value; renderForm(); renderPreview(); scheduleSave(); return; }
+
+  var sec = btn.dataset.section ? getSection(btn.dataset.section) : null;
+
+  if (action === 'toggle-section' && sec){ sec.visible = !sec.visible; renderForm(); renderPreview(); scheduleSave(); return; }
+  if (action === 'remove-section' && sec){
+    if (!confirm('Delete this section?')) return;
+    state.sections = state.sections.filter(function(s){ return s.id !== sec.id; });
+    renderForm(); renderPreview(); scheduleSave(); return;
+  }
+  if (action === 'move-up' && sec){
+    var i = state.sections.indexOf(sec);
+    if (i>0){ state.sections.splice(i,1); state.sections.splice(i-1,0,sec); renderForm(); renderPreview(); scheduleSave(); }
+    return;
+  }
+  if (action === 'move-down' && sec){
+    var j = state.sections.indexOf(sec);
+    if (j<state.sections.length-1){ state.sections.splice(j,1); state.sections.splice(j+1,0,sec); renderForm(); renderPreview(); scheduleSave(); }
+    return;
+  }
+  if (action === 'add-item' && sec){
+    sec.items = sec.items || [];
+    sec.items.push({ id:uid(), heading:'', org:'', location:'', dates:'', bullets:[''] });
+    renderForm(); renderPreview(); scheduleSave(); return;
+  }
+  if (action === 'remove-item' && sec){
+    sec.items = sec.items.filter(function(i){ return i.id !== btn.dataset.item; });
+    renderForm(); renderPreview(); scheduleSave(); return;
+  }
+  if ((action === 'item-up' || action === 'item-down') && sec){
+    var idx = sec.items.findIndex(function(i){ return i.id === btn.dataset.item; });
+    var swapWith = action === 'item-up' ? idx-1 : idx+1;
+    if (swapWith>=0 && swapWith<sec.items.length){
+      var tmp = sec.items[idx]; sec.items[idx]=sec.items[swapWith]; sec.items[swapWith]=tmp;
+      renderForm(); renderPreview(); scheduleSave();
+    }
+    return;
+  }
+  if (action === 'add-skill' && sec){
+    var input = formPanel.querySelector('[data-skill-input="'+sec.id+'"]');
+    addSkill(sec.id, input);
+    return;
+  }
+  if (action === 'remove-skill' && sec){
+    sec.skills.splice(parseInt(btn.dataset.index,10), 1);
+    renderForm(); renderPreview(); scheduleSave(); return;
+  }
+});
+
+function addSkill(sectionId, inputEl){
+  var sec = getSection(sectionId);
+  if (!sec || !inputEl) return;
+  var val = inputEl.value.trim();
+  if (!val) return;
+  sec.skills = sec.skills || [];
+  sec.skills.push(val);
+  inputEl.value = '';
+  renderForm(); renderPreview(); scheduleSave();
+  var newInput = formPanel.querySelector('[data-skill-input="'+sectionId+'"]');
+  if (newInput) newInput.focus();
+}
+
+function addSection(){
+  var kind = document.getElementById('newSectionKind').value;
+  var titleMap = { entries:'New Section', text:'Notes', skills:'Skills' };
+  var sec = { id:uid(), kind:kind, title:titleMap[kind], visible:true };
+  if (kind === 'text') sec.content = '';
+  if (kind === 'skills') sec.skills = [];
+  if (kind === 'entries') sec.items = [];
+  state.sections.push(sec);
+  renderForm(); renderPreview(); scheduleSave();
+}
+
+/* ---------------- Top bar controls ---------------- */
+document.getElementById('modeResumeBtn').addEventListener('click', function(){ setMode('resume'); });
+document.getElementById('modeCvBtn').addEventListener('click', function(){ setMode('cv'); });
+function setMode(m){
+  state.mode = m;
+  document.getElementById('modeResumeBtn').classList.toggle('active', m==='resume');
+  document.getElementById('modeCvBtn').classList.toggle('active', m==='cv');
+  document.getElementById('shrinkFitBtn').style.display = m==='resume' ? '' : 'none';
+  refreshPageInfo();
+  scheduleSave();
+}
+
+document.getElementById('printBtn').addEventListener('click', function(){ window.print(); });
+document.getElementById('shrinkFitBtn').addEventListener('click', shrinkToFit);
+
+document.getElementById('exportBtn').addEventListener('click', function(){
+  var niceName = (state.personal.name || 'resume').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'resume';
+  var blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = niceName + '-data.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  flashSaveMsg('Exported.');
+});
+
+document.getElementById('importBtn').addEventListener('click', function(){
+  document.getElementById('importFileInput').click();
+});
+
+document.getElementById('importFileInput').addEventListener('change', function(e){
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(evt){
+    try{
+      var parsed = JSON.parse(evt.target.result);
+      if (!parsed || !parsed.personal || !parsed.sections || !Array.isArray(parsed.sections)){
+        throw new Error('Missing expected fields');
+      }
+      var defaults = defaultState();
+      state = {
+        personal: Object.assign({}, defaults.personal, parsed.personal),
+        mode: parsed.mode === 'cv' ? 'cv' : 'resume',
+        template: parsed.template === 'harvard' ? 'harvard' : 'jakes',
+        fontFamily: parsed.fontFamily === 'serif' ? 'serif' : 'sans',
+        fontSizePt: typeof parsed.fontSizePt === 'number' ? parsed.fontSizePt : 10.6,
+        margin: ['normal','narrow','narrowest'].indexOf(parsed.margin) !== -1 ? parsed.margin : 'narrowest',
+        sections: parsed.sections.map(function(s){
+          return {
+            id: s.id || uid(),
+            kind: s.kind || 'entries',
+            title: s.title || 'Section',
+            visible: s.visible !== false,
+            content: s.content || '',
+            skills: Array.isArray(s.skills) ? s.skills : [],
+            items: Array.isArray(s.items) ? s.items.map(function(it){
+              return {
+                id: it.id || uid(),
+                heading: it.heading || '',
+                org: it.org || '',
+                location: it.location || '',
+                dates: it.dates || '',
+                bullets: Array.isArray(it.bullets) ? it.bullets : []
+              };
+            }) : []
+          };
+        })
+      };
+      renderAll();
+      scheduleSave();
+      flashSaveMsg('Imported.');
+    }catch(err){
+      alert('Could not read that file. Make sure it is a JSON export from this tool.');
+    }
+    document.getElementById('importFileInput').value = '';
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('resetBtn').addEventListener('click', function(){
+  if (!confirm('Clear all content and start over? This cannot be undone.')) return;
+  state = defaultState();
+  try{ localStorage.removeItem('resume-builder-data'); }catch(e){}
+  renderAll();
+  scheduleSave();
+});
+
+window.addEventListener('resize', function(){ refreshPageInfo(); });
+
+loadSaved();
+
+})();
+</script>
+</body>
+</html>
