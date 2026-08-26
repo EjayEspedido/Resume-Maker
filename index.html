@@ -248,9 +248,9 @@
     .preview-panel{height:auto !important;overflow:visible !important;padding:0;background:#fff;display:block;}
     .sheet-wrap{height:auto !important;overflow:visible !important;box-shadow:none;}
     #resumeSheet{height:auto !important;overflow:visible !important;box-shadow:none;padding:0;width:auto;min-height:0;}
-    /* Keep a section (and each entry in an oversized section) together.
-       The browser moves it to the next physical page when it will not fit. */
-    .r-section, .r-entry{break-inside:avoid-page;page-break-inside:avoid;}
+    /* CVs can flow across pages.  Keep an individual entry together, but
+       allow the section itself to continue on the next page entry by entry. */
+    #resumeSheet.mode-cv .r-entry{break-inside:avoid-page;page-break-inside:avoid;}
     .r-heading{break-after:avoid-page;page-break-after:avoid;}
   }
 </style>
@@ -640,7 +640,7 @@ function renderEntryForm(sec, item, idx, total){
 /* ---------------- Preview rendering ---------------- */
 function renderPreview(){
   var sheet = document.getElementById('resumeSheet');
-  sheet.className = 'font-'+state.fontFamily+' margin-'+state.margin+' tpl-'+state.template;
+  sheet.className = 'mode-'+state.mode+' font-'+state.fontFamily+' margin-'+state.margin+' tpl-'+state.template;
   var fs = state.fontSizePt;
   var lh = Math.max(1.15, Math.min(1.5, 1.24 + (fs-9.2)*0.1286));
   sheet.style.fontSize = fs+'pt';
@@ -704,13 +704,14 @@ function renderPreview(){
 
 function updatePrintMargin(){
   var inches = { normal:'0.65in', narrow:'0.4in', narrowest:'0.22in' }[state.margin] || '0.4in';
+  var printableHeight = { normal:'9.7in', narrow:'10.2in', narrowest:'10.56in' }[state.margin] || '10.2in';
   var styleEl = document.getElementById('printPageStyle');
   if (!styleEl){
     styleEl = document.createElement('style');
     styleEl.id = 'printPageStyle';
     document.head.appendChild(styleEl);
   }
-  styleEl.textContent = '@media print { @page { size: letter; margin: '+inches+'; } }';
+  styleEl.textContent = '@media print { @page { size: letter; margin: '+inches+'; } #resumeSheet.mode-resume { max-height: '+printableHeight+'; overflow: hidden !important; } }';
 }
 
 function computePages(){
