@@ -22,7 +22,7 @@
     --page-h-px: 1056;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;}
   body{
     background:var(--paper);
     color:var(--ink);
@@ -32,7 +32,7 @@
   h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:600;margin:0;}
 
   /* ---------- Layout ---------- */
-  .app{display:flex;flex-direction:column;min-height:100vh;}
+  .app{display:flex;flex-direction:column;height:100vh;}
   header.topbar{
     display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
     padding:14px 22px;background:var(--ink);color:#fff;position:sticky;top:0;z-index:20;
@@ -67,11 +67,11 @@
 
   .layout{display:flex;flex:1;min-height:0;}
   .form-panel{
-    width:440px;min-width:340px;max-width:46vw;overflow-y:auto;
+    width:440px;min-width:340px;max-width:46vw;overflow-y:auto;height:100%;
     padding:20px;background:var(--paper);border-right:1px solid var(--border);
   }
   .preview-panel{
-    flex:1;overflow-y:auto;padding:36px 24px;display:flex;flex-direction:column;align-items:center;background:#EDEAE1;
+    flex:1;overflow-y:auto;height:100%;padding:36px 24px;display:flex;flex-direction:column;align-items:center;background:#EDEAE1;
   }
 
   /* ---------- Form styling ---------- */
@@ -209,19 +209,32 @@
 
   .save-indicator{font-size:11px;color:#8B93B8;min-width:70px;text-align:right;}
 
+  .tabbar{display:flex;align-items:flex-end;gap:4px;padding:8px 22px 0;background:var(--ink);overflow-x:auto;flex-wrap:nowrap;}
+  .tab{
+    display:flex;align-items:center;gap:2px;padding:8px 6px 8px 14px;background:rgba(255,255,255,.07);
+    color:#C9CFE6;border-radius:8px 8px 0 0;font-size:12.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  }
+  .tab.active{background:var(--paper);color:var(--ink);}
+  .tab .tab-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;padding:2px 4px;}
+  .tab-icon{border:none;background:transparent;color:inherit;opacity:.55;cursor:pointer;font-size:11px;width:22px;height:22px;border-radius:5px;flex-shrink:0;}
+  .tab-icon:hover{opacity:1;background:rgba(0,0,0,.12);}
+  .tab.active .tab-icon:hover{background:rgba(0,0,0,.08);}
+  .tab.add-tab{background:transparent;border:1px dashed rgba(255,255,255,.3);color:#C9CFE6;font-weight:500;padding:8px 14px;}
+  .tab.add-tab:hover{background:rgba(255,255,255,.08);}
+
   ::-webkit-scrollbar{width:10px;height:10px;}
   ::-webkit-scrollbar-thumb{background:#D6D2C6;border-radius:6px;}
 
   @media (max-width: 880px){
     .layout{flex-direction:column;}
-    .form-panel{width:100%;max-width:100%;border-right:none;border-bottom:1px solid var(--border);max-height:52vh;}
-    .preview-panel{padding:20px 10px;}
+    .form-panel{width:100%;max-width:100%;height:auto;max-height:52vh;border-right:none;border-bottom:1px solid var(--border);}
+    .preview-panel{height:auto;flex:1;padding:20px 10px;}
     #resumeSheet{width:100%;max-width:var(--page-w);padding:0.5in 0.45in;}
   }
 
   @media print{
     body{background:#fff;}
-    header.topbar, .form-panel, .fit-banner, .page-break-line, .page-break-label{display:none !important;}
+    header.topbar, .tabbar, .form-panel, .fit-banner, .page-break-line, .page-break-label{display:none !important;}
     .preview-panel{padding:0;background:#fff;display:block;}
     .sheet-wrap{box-shadow:none;}
     #resumeSheet{box-shadow:none;padding:0;width:auto;min-height:0;}
@@ -254,6 +267,8 @@
       <button class="btn primary" id="printBtn">Print / Save as PDF</button>
     </div>
   </header>
+
+  <div class="tabbar" id="tabBar"></div>
 
   <div class="layout">
     <div class="form-panel" id="formPanel"></div>
@@ -309,19 +324,34 @@ function defaultState(){
   };
 }
 
+var docs = [];
+var activeId = null;
 var state = defaultState();
 
 function getSection(id){ return state.sections.find(function(s){ return s.id===id; }); }
 function getItem(sec, id){ return sec.items.find(function(i){ return i.id===id; }); }
 
 /* ---------------- Persistence ---------------- */
+var STORAGE_KEY = 'resume-builder-docs-v1';
+var LEGACY_KEY = 'resume-builder-data';
+
+function migrateDocData(d){
+  if (typeof d.fontSizePt !== 'number'){
+    var map = { normal:10.6, compact:9.8, tight:9.2 };
+    d.fontSizePt = map[d.fontSize] || 10.6;
+  }
+  if (!d.margin) d.margin = 'narrowest';
+  if (d.template !== 'harvard') d.template = 'jakes';
+  return d;
+}
+
 var saveTimer = null;
 function scheduleSave(){
   clearTimeout(saveTimer);
   setIndicator('Saving…');
   saveTimer = setTimeout(function(){
     try{
-      localStorage.setItem('resume-builder-data', JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ activeId: activeId, docs: docs }));
       setIndicator('Saved');
       setTimeout(function(){ setIndicator(''); }, 1500);
     }catch(e){
@@ -333,24 +363,120 @@ function setIndicator(txt){
   var el = document.getElementById('saveIndicator');
   if (el) el.textContent = txt;
 }
+
 function loadSaved(){
   try{
-    var raw = localStorage.getItem('resume-builder-data');
+    var raw = localStorage.getItem(STORAGE_KEY);
     if (raw){
       var parsed = JSON.parse(raw);
-      if (parsed && parsed.personal && parsed.sections){
-        if (typeof parsed.fontSizePt !== 'number'){
-          var map = { normal:10.6, compact:9.8, tight:9.2 };
-          parsed.fontSizePt = map[parsed.fontSize] || 10.6;
+      if (parsed && Array.isArray(parsed.docs) && parsed.docs.length){
+        docs = parsed.docs.map(function(d){
+          d.data = migrateDocData(d.data || defaultState());
+          if (!d.id) d.id = uid();
+          if (!d.name) d.name = 'Untitled Resume';
+          return d;
+        });
+        activeId = docs.some(function(d){ return d.id === parsed.activeId; }) ? parsed.activeId : docs[0].id;
+      }
+    } else {
+      var legacyRaw = localStorage.getItem(LEGACY_KEY);
+      if (legacyRaw){
+        var legacyParsed = JSON.parse(legacyRaw);
+        if (legacyParsed && legacyParsed.personal && legacyParsed.sections){
+          var d2 = migrateDocData(legacyParsed);
+          docs = [{ id: uid(), name: (d2.personal.name ? d2.personal.name+'\u2019s Resume' : 'My Resume'), data: d2 }];
+          activeId = docs[0].id;
         }
-        if (!parsed.margin) parsed.margin = 'narrowest';
-        if (parsed.template !== 'harvard') parsed.template = 'jakes';
-        state = parsed;
       }
     }
   }catch(e){}
+
+  if (!docs.length){
+    var fresh = { id: uid(), name: 'My Resume', data: defaultState() };
+    docs = [fresh];
+    activeId = fresh.id;
+  }
+
+  state = docs.filter(function(d){ return d.id===activeId; })[0].data;
+  renderTabs();
   renderAll();
 }
+
+/* ---------------- Tabs ---------------- */
+function renderTabs(){
+  var bar = document.getElementById('tabBar');
+  var html = '';
+  docs.forEach(function(d){
+    var active = d.id === activeId;
+    html += '<div class="tab '+(active?'active':'')+'" data-tab="'+d.id+'">';
+    html += '<span class="tab-name" data-action="switch-tab" data-tab="'+d.id+'" title="'+esc(d.name)+'">'+esc(d.name)+'</span>';
+    html += '<button class="tab-icon" data-action="rename-tab" data-tab="'+d.id+'" title="Rename">\u270E</button>';
+    if (docs.length > 1) html += '<button class="tab-icon" data-action="delete-tab" data-tab="'+d.id+'" title="Delete">\u2715</button>';
+    html += '</div>';
+  });
+  html += '<button class="tab add-tab" id="addTabBtn" title="New resume">+ New</button>';
+  bar.innerHTML = html;
+}
+
+function switchTab(id){
+  if (id === activeId) return;
+  var doc = docs.filter(function(d){ return d.id===id; })[0];
+  if (!doc) return;
+  activeId = id;
+  state = doc.data;
+  renderTabs();
+  renderAll();
+  scheduleSave();
+}
+
+function renameTab(id){
+  var doc = docs.filter(function(d){ return d.id===id; })[0];
+  if (!doc) return;
+  var name = prompt('Rename this resume:', doc.name);
+  if (name && name.trim()){
+    doc.name = name.trim();
+    renderTabs();
+    scheduleSave();
+  }
+}
+
+function deleteTab(id){
+  if (docs.length <= 1) return;
+  var doc = docs.filter(function(d){ return d.id===id; })[0];
+  if (!doc) return;
+  if (!confirm('Delete "'+doc.name+'"? This cannot be undone.')) return;
+  docs = docs.filter(function(d){ return d.id !== id; });
+  if (activeId === id){
+    activeId = docs[0].id;
+    state = docs[0].data;
+  }
+  renderTabs();
+  renderAll();
+  scheduleSave();
+}
+
+function addTab(){
+  var newDoc = { id: uid(), name: 'Untitled Resume', data: defaultState() };
+  docs.push(newDoc);
+  activeId = newDoc.id;
+  state = newDoc.data;
+  renderTabs();
+  renderAll();
+  scheduleSave();
+}
+
+document.getElementById('tabBar').addEventListener('click', function(e){
+  var actionEl = e.target.closest('[data-action]');
+  if (actionEl){
+    var action = actionEl.dataset.action;
+    var id = actionEl.dataset.tab;
+    if (action === 'switch-tab') switchTab(id);
+    else if (action === 'rename-tab') renameTab(id);
+    else if (action === 'delete-tab') deleteTab(id);
+    return;
+  }
+  if (e.target.id === 'addTabBtn' || e.target.closest('#addTabBtn')) addTab();
+});
 
 /* ---------------- Escaping ---------------- */
 function esc(str){
@@ -836,6 +962,8 @@ document.getElementById('importFileInput').addEventListener('change', function(e
           };
         })
       };
+      var importDoc = docs.filter(function(d){ return d.id===activeId; })[0];
+      if (importDoc) importDoc.data = state;
       renderAll();
       scheduleSave();
       flashSaveMsg('Imported.');
@@ -848,9 +976,10 @@ document.getElementById('importFileInput').addEventListener('change', function(e
 });
 
 document.getElementById('resetBtn').addEventListener('click', function(){
-  if (!confirm('Clear all content and start over? This cannot be undone.')) return;
+  if (!confirm('Clear this resume and start over? This cannot be undone.')) return;
+  var doc = docs.filter(function(d){ return d.id===activeId; })[0];
   state = defaultState();
-  try{ localStorage.removeItem('resume-builder-data'); }catch(e){}
+  if (doc) doc.data = state;
   renderAll();
   scheduleSave();
 });
