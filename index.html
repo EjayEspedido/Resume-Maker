@@ -64,6 +64,13 @@
   .btn.primary{background:var(--accent);border-color:var(--accent);}
   .btn.primary:hover{background:var(--accent-dark);}
   .btn.small{padding:5px 9px;font-size:11.5px;}
+  .json-help-btn{width:24px;height:24px;padding:0;justify-content:center;border-radius:50%;font-weight:600;}
+  dialog.json-guide{max-width:min(620px,calc(100vw - 32px));max-height:80vh;border:1px solid var(--border);border-radius:10px;padding:18px 20px;color:var(--ink);font-family:'Inter',sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25);}
+  dialog.json-guide::backdrop{background:rgba(27,36,64,.4);}
+  .json-guide h2{font-size:18px;margin:0 0 8px;}
+  .json-guide p{font-size:13px;line-height:1.5;margin:0 0 10px;}
+  .json-guide pre{max-height:44vh;overflow:auto;margin:12px 0 14px;padding:12px;background:#F6F4EE;border-radius:7px;font-size:11px;line-height:1.4;}
+  .json-guide .guide-actions{display:flex;justify-content:flex-end;}
 
   .layout{display:flex;flex:1;min-height:0;}
   .form-panel{
@@ -261,6 +268,7 @@
       <span class="save-indicator" id="saveIndicator"></span>
       <button class="btn" id="exportBtn" title="Download your data as a JSON file">Export</button>
       <button class="btn" id="importBtn" title="Load data from a JSON file">Import</button>
+      <button class="btn json-help-btn" id="jsonHelpBtn" type="button" title="JSON format guide" aria-label="JSON format guide">?</button>
       <input type="file" id="importFileInput" accept="application/json,.json,.txt" style="display:none;">
       <button class="btn" id="shrinkFitBtn" title="Automatically reduce font size until content fits one page">Shrink to fit</button>
       <button class="btn" id="resetBtn" title="Clear all data">Reset</button>
@@ -281,6 +289,36 @@
     </div>
   </div>
 </div>
+
+<dialog class="json-guide" id="jsonGuide">
+  <h2>JSON format guide</h2>
+  <p>Section order does not matter. The app normalizes these named fields before rendering; templates keep their own layout and styling.</p>
+  <pre>{
+  "personal": {
+    "name": "John Doe",
+    "title": "Software Developer",
+    "email": "john@example.com",
+    "phone": "+63 912 345 6789",
+    "location": "Manila, Philippines",
+    "linkedin": "linkedin.com/in/johndoe",
+    "website": "johndoe.dev"
+  },
+  "summary": "Software developer with experience in web development.",
+  "experience": [{
+    "heading": "Software Developer",
+    "org": "Company Name",
+    "location": "Manila, Philippines",
+    "dates": "2024 – Present",
+    "bullets": ["Developed and maintained web applications."]
+  }],
+  "education": [{ "heading": "BS Computer Engineering", "org": "University Name", "dates": "2020 – 2024" }],
+  "projects": [{ "heading": "Project Name", "org": "React, Node.js", "bullets": ["Brief project description."] }],
+  "skills": ["JavaScript", "Python", "React"],
+  "certifications": [],
+  "leadership": []
+}</pre>
+  <div class="guide-actions"><button class="btn small" id="closeJsonGuide" type="button">Close</button></div>
+</dialog>
 
 <script>
 (function(){
@@ -907,7 +945,7 @@ document.getElementById('shrinkFitBtn').addEventListener('click', shrinkToFit);
 
 document.getElementById('exportBtn').addEventListener('click', function(){
   var niceName = (state.personal.name || 'resume').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'resume';
-  var blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+  var blob = new Blob([JSON.stringify(exportResumeData(), null, 2)], { type:'application/json' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
@@ -923,6 +961,107 @@ document.getElementById('importBtn').addEventListener('click', function(){
   document.getElementById('importFileInput').click();
 });
 
+document.getElementById('jsonHelpBtn').addEventListener('click', function(){
+  document.getElementById('jsonGuide').showModal();
+});
+document.getElementById('closeJsonGuide').addEventListener('click', function(){
+  document.getElementById('jsonGuide').close();
+});
+
+function normalizeItem(item){
+  item = item || {};
+  return {
+    id: item.id || uid(),
+    heading: item.heading || item.position || item.degree || item.name || '',
+    org: item.org || item.company || item.school || '',
+    location: item.location || '',
+    dates: item.dates || ((item.startDate || '') + (item.endDate ? ' – ' + item.endDate : '')).replace(/^\s+|\s+$/g, ''),
+    bullets: Array.isArray(item.bullets) ? item.bullets : (item.description ? [item.description] : [])
+  };
+}
+
+function exportResumeData(){
+  var exported = {
+    version: '1.0',
+    personal: state.personal,
+    mode: state.mode,
+    template: state.template,
+    fontFamily: state.fontFamily,
+    fontSizePt: state.fontSizePt,
+    margin: state.margin,
+    summary: '', experience: [], education: [], projects: [], skills: [], certifications: [], leadership: []
+  };
+  var known = {
+    summary:'summary', experience:'experience', education:'education', projects:'projects',
+    skills:'skills', certifications:'certifications', leadership:'leadership'
+  };
+  var customSections = [];
+  state.sections.forEach(function(section){
+    var key = known[(section.title || '').toLowerCase().replace(/^professional\s+/, '')];
+    if (!key){ customSections.push(section); return; }
+    if (section.kind === 'text') exported[key] = section.content || '';
+    else if (section.kind === 'skills') exported[key] = Array.isArray(section.skills) ? section.skills : [];
+    else exported[key] = Array.isArray(section.items) ? section.items.map(function(item){
+      return { heading:item.heading || '', org:item.org || '', location:item.location || '', dates:item.dates || '', bullets:Array.isArray(item.bullets) ? item.bullets : [] };
+    }) : [];
+  });
+  if (customSections.length) exported.additionalSections = customSections;
+  return exported;
+}
+
+function normalizeImportedResume(raw){
+  var parsed = raw && raw.data ? raw.data : raw;
+  if (!parsed || typeof parsed !== 'object') throw new Error('Invalid JSON');
+  var defaults = defaultState();
+
+  /* Existing exports retain their custom sections; guided JSON becomes canonical sections. */
+  var sections = Array.isArray(parsed.sections) ? parsed.sections.map(function(s){
+    return {
+      id: s.id || uid(), kind: s.kind || 'entries', title: s.title || 'Section', visible: s.visible !== false,
+      content: s.content || '', skills: Array.isArray(s.skills) ? s.skills : [],
+      items: Array.isArray(s.items) ? s.items.map(normalizeItem) : []
+    };
+  }) : [];
+  if (!sections.length){
+    var canonical = [
+      { key:'summary', kind:'text', title:'Summary' },
+      { key:'experience', kind:'entries', title:'Experience' },
+      { key:'education', kind:'entries', title:'Education' },
+      { key:'projects', kind:'entries', title:'Projects' },
+      { key:'skills', kind:'skills', title:'Skills' },
+      { key:'certifications', kind:'entries', title:'Certifications' },
+      { key:'leadership', kind:'entries', title:'Leadership' }
+    ];
+    sections = canonical.map(function(section){
+      var value = parsed[section.key];
+      return {
+        id: uid(), kind: section.kind, title: section.title,
+        visible: Array.isArray(value) ? value.length > 0 : !!value,
+        content: section.kind === 'text' ? (typeof value === 'string' ? value : '') : '',
+        skills: section.kind === 'skills' && Array.isArray(value) ? value : [],
+        items: section.kind === 'entries' && Array.isArray(value) ? value.map(normalizeItem) : []
+      };
+    });
+    if (Array.isArray(parsed.additionalSections)){
+      sections = sections.concat(parsed.additionalSections.map(function(s){
+        return {
+          id: s.id || uid(), kind: s.kind || 'entries', title: s.title || 'Section', visible: s.visible !== false,
+          content: s.content || '', skills: Array.isArray(s.skills) ? s.skills : [],
+          items: Array.isArray(s.items) ? s.items.map(normalizeItem) : []
+        };
+      }));
+    }
+  }
+  return {
+    personal: Object.assign({}, defaults.personal, parsed.personal || {}),
+    mode: parsed.mode === 'cv' ? 'cv' : 'resume', template: parsed.template === 'harvard' ? 'harvard' : 'jakes',
+    fontFamily: parsed.fontFamily === 'serif' ? 'serif' : 'sans',
+    fontSizePt: typeof parsed.fontSizePt === 'number' ? parsed.fontSizePt : defaults.fontSizePt,
+    margin: ['normal','narrow','narrowest'].indexOf(parsed.margin) !== -1 ? parsed.margin : defaults.margin,
+    sections: sections
+  };
+}
+
 document.getElementById('importFileInput').addEventListener('change', function(e){
   var file = e.target.files && e.target.files[0];
   if (!file) return;
@@ -930,45 +1069,14 @@ document.getElementById('importFileInput').addEventListener('change', function(e
   reader.onload = function(evt){
     try{
       var parsed = JSON.parse(evt.target.result);
-      if (!parsed || !parsed.personal || !parsed.sections || !Array.isArray(parsed.sections)){
-        throw new Error('Missing expected fields');
-      }
-      var defaults = defaultState();
-      state = {
-        personal: Object.assign({}, defaults.personal, parsed.personal),
-        mode: parsed.mode === 'cv' ? 'cv' : 'resume',
-        template: parsed.template === 'harvard' ? 'harvard' : 'jakes',
-        fontFamily: parsed.fontFamily === 'serif' ? 'serif' : 'sans',
-        fontSizePt: typeof parsed.fontSizePt === 'number' ? parsed.fontSizePt : 10.6,
-        margin: ['normal','narrow','narrowest'].indexOf(parsed.margin) !== -1 ? parsed.margin : 'narrowest',
-        sections: parsed.sections.map(function(s){
-          return {
-            id: s.id || uid(),
-            kind: s.kind || 'entries',
-            title: s.title || 'Section',
-            visible: s.visible !== false,
-            content: s.content || '',
-            skills: Array.isArray(s.skills) ? s.skills : [],
-            items: Array.isArray(s.items) ? s.items.map(function(it){
-              return {
-                id: it.id || uid(),
-                heading: it.heading || '',
-                org: it.org || '',
-                location: it.location || '',
-                dates: it.dates || '',
-                bullets: Array.isArray(it.bullets) ? it.bullets : []
-              };
-            }) : []
-          };
-        })
-      };
+      state = normalizeImportedResume(parsed);
       var importDoc = docs.filter(function(d){ return d.id===activeId; })[0];
       if (importDoc) importDoc.data = state;
       renderAll();
       scheduleSave();
       flashSaveMsg('Imported.');
     }catch(err){
-      alert('Could not read that file. Make sure it is a JSON export from this tool.');
+      alert('Could not read that file. Make sure it is valid JSON in the documented format.');
     }
     document.getElementById('importFileInput').value = '';
   };
