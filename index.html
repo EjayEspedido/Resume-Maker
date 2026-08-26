@@ -240,12 +240,18 @@
   }
 
   @media print{
-    body{background:#fff;}
+    /* The editor deliberately constrains the app to the viewport.  Those
+       constraints must be removed for printing or page 2 is clipped. */
+    html, body{height:auto !important;min-height:0 !important;overflow:visible !important;background:#fff;}
+    .app, .layout{display:block !important;height:auto !important;min-height:0 !important;overflow:visible !important;}
     header.topbar, .tabbar, .form-panel, .fit-banner, .page-break-line, .page-break-label{display:none !important;}
-    .preview-panel{padding:0;background:#fff;display:block;}
-    .sheet-wrap{box-shadow:none;}
-    #resumeSheet{box-shadow:none;padding:0;width:auto;min-height:0;}
-    .r-entry, .r-section{page-break-inside:avoid;}
+    .preview-panel{height:auto !important;overflow:visible !important;padding:0;background:#fff;display:block;}
+    .sheet-wrap{height:auto !important;overflow:visible !important;box-shadow:none;}
+    #resumeSheet{height:auto !important;overflow:visible !important;box-shadow:none;padding:0;width:auto;min-height:0;}
+    /* Keep a section (and each entry in an oversized section) together.
+       The browser moves it to the next physical page when it will not fit. */
+    .r-section, .r-entry{break-inside:avoid-page;page-break-inside:avoid;}
+    .r-heading{break-after:avoid-page;page-break-after:avoid;}
   }
 </style>
 </head>
